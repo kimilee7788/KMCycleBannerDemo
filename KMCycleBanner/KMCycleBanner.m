@@ -19,6 +19,8 @@
 @property (nonatomic ,strong) UIPageControl * pageControl;
 @property (nonatomic ,assign) NSInteger currentIndex;
 
+@property (nonatomic ,strong) NSTimer * timer;
+
 @end
 
 @implementation KMCycleBanner
