@@ -7,67 +7,74 @@
 //
 
 #import "KMCycleBanner.h"
+#define WS(weakSelf)  __weak __typeof(&*self)weakSelf = self;
 
-@interface KMCycleBanner()<UIScrollViewDelegate>
+
+@interface KMCycleBanner()<UIScrollViewDelegate,KMCycleBannerDelegate>
 
 @property (nonatomic ,strong) UIScrollView * scrollView;
-
 @property (nonatomic ,strong) UIImageView * leftImageView;
 @property (nonatomic ,strong) UIImageView * rightImageView;
 @property (nonatomic ,strong) UIImageView * centerImageView;
-
 @property (nonatomic ,strong) UIPageControl * pageControl;
+
 @property (nonatomic ,assign) NSInteger currentIndex;
 
-@property (nonatomic ,strong) NSTimer * timer;
+@property (nonatomic ,weak) NSTimer * timer;
 
 @end
 
 @implementation KMCycleBanner
 
 - (instancetype)initWithFrame:(CGRect)frame
-                       images:(NSArray *)images
-{
+                       images:(NSArray *)images{
+    
     self = [self initWithFrame:frame];
+    
     if (self) {
         [self setImages:images];
     }
     return self;
 }
 
-
 - (instancetype)initWithFrame:(CGRect)frame
 {
     self = [super initWithFrame:frame];
     if (self) {
+        
         [self setupView];
+        [self addObserver:self forKeyPath:AUTOMATIC_SROLL_CHANGEKEY options:NSKeyValueObservingOptionNew context:nil];
     }
+    
     return self;
 }
 
-- (void)setImages:(NSArray *)images
-{
+- (void)setImages:(NSArray *)images{
+    
     _images = [[NSArray alloc]initWithArray:images];
+    
     [self loadData];
 }
 
-
-- (void)loadData
-{
+- (void)loadData{
+    
     [_scrollView setContentSize:CGSizeMake(self.width*self.images.count, 0)];
     [_pageControl setNumberOfPages:self.images.count];
     
-    [self setImageWithIndex:_currentIndex];
+    [self setImageWithIndex:_currentIndex animated:NO];
 }
 
 //设置移动到中间
-- (void)moveScrollViewToCenter
-{
-    [_scrollView setContentOffset:CGPointMake(self.width, 0)];
+- (void)moveScrollViewToCenter{
+    
+    [_scrollView setContentOffset:CGPointMake(self.width, 0) animated:NO];
+    
+    NSLog(@"跳转到中间后:%f",_scrollView.contentOffset.x);
+
 }
 
-- (void)setImageWithIndex:(NSInteger)index
-{
+- (void)setImageWithIndex:(NSInteger)index animated:(BOOL)animated{
+    
     if (index>self.images.count||self.images.count==0) {
         return;
     }
@@ -75,35 +82,68 @@
     NSInteger leftIndex = (unsigned long)((index - 1 + self.images.count) % self.images.count);
     NSInteger rightIndex = (unsigned long)((index + 1) % self.images.count);
     
-    [_centerImageView setImage:[UIImage imageNamed:self.images[index]]];
-    [_leftImageView setImage:[UIImage imageNamed:self.images[leftIndex]]];
-    [_rightImageView setImage:[UIImage imageNamed:self.images[rightIndex]]];
+//    [_centerImageView setImage:[UIImage imageNamed:self.images[index]]];
+//    [_leftImageView setImage:[UIImage imageNamed:self.images[leftIndex]]];
+//    [_rightImageView setImage:[UIImage imageNamed:self.images[rightIndex]]];
     
+    [_centerImageView loadImageWithUrl:[NSURL URLWithString:self.images[index]]];
+    [_leftImageView loadImageWithUrl:[NSURL URLWithString:self.images[leftIndex]]];
+    [_rightImageView loadImageWithUrl:[NSURL URLWithString:self.images[rightIndex]]];
+
     [_pageControl setCurrentPage:index];
     
+
     [self moveScrollViewToCenter];
 }
 
 #pragma mark UIScrollDelegate
 
-- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView
-{
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
+    
     if (scrollView.contentOffset.x >= scrollView.width*2)
     {
         _currentIndex = (_currentIndex +1)%self.images.count;
-        [self setImageWithIndex:_currentIndex];
+        [self setImageWithIndex:_currentIndex animated:NO];
     }
     else if (scrollView.contentOffset.x == 0)
     {
         _currentIndex = (_currentIndex -1 + self.images.count)%self.images.count;
-        [self setImageWithIndex:_currentIndex];
+        [self setImageWithIndex:_currentIndex animated:NO];
     }
 }
 
 #pragma mark UI
 
-- (void)setupView
+//- (void)layoutIfNeeded
+//{
+//    //设置轮播视图布局
+//    _scrollView.frame = self.bounds;
+//    _leftImageView.frame = _centerImageView.frame = _rightImageView.frame = _scrollView.bounds;
+//    _leftImageView.right = _centerImageView.left;
+//    _rightImageView.left = _centerImageView.right;
+//
+//    //设置pageControl布局
+//    _pageControl.width = self.width/2;
+//    _pageControl.centerX = self.centerX;
+//    _pageControl.bottom = self.height -20;
+//}
+
+- (void)layoutSubviews
 {
+    //设置轮播视图布局
+    _scrollView.frame = self.bounds;
+    _leftImageView.frame = _centerImageView.frame = _rightImageView.frame = _scrollView.bounds;
+    _leftImageView.right = _centerImageView.left;
+    _rightImageView.left = _centerImageView.right;
+    
+    //设置pageControl布局
+    _pageControl.width = self.width/2;
+    _pageControl.centerX = self.centerX;
+    _pageControl.bottom = self.height -20;
+}
+
+- (void)setupView{
+    
     [self.scrollView addSubview:self.rightImageView];
     [self.scrollView addSubview:self.centerImageView];
     [self.scrollView addSubview:self.leftImageView];
@@ -111,44 +151,53 @@
     [self addSubview:self.scrollView];
     [self addSubview:self.pageControl];
     
-    [self subImageLayout];
+//    [self subImageLayout];
 }
 
-- (void)subImageLayout
-{
-    _centerImageView.left = _leftImageView.right;
-    _rightImageView.left = _centerImageView.right;
+//- (void)subImageLayout{
+//
+//    _centerImageView.left = _leftImageView.right;
+//    _rightImageView.left = _centerImageView.right;
+//
+//    _pageControl.width = self.width/2;
+//    _pageControl.centerX = self.centerX;
+//    _pageControl.bottom = self.height -20;
+//}
+
+- (UIScrollView *)scrollView{
     
-    _pageControl.width = self.width/2;
-    _pageControl.centerX = self.centerX;
-    _pageControl.bottom = self.height -20;
-}
-
-- (UIScrollView *)scrollView
-{
     if (!_scrollView) {
+        
+        UITapGestureRecognizer * tap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(clickImageWithIndex:)];
         _scrollView = [[UIScrollView alloc]initWithFrame:self.bounds];
         [_scrollView setPagingEnabled:YES];
         [_scrollView setDelegate:self];
+        [_scrollView setBounces:NO];
         [_scrollView setShowsVerticalScrollIndicator:NO];
         [_scrollView setShowsHorizontalScrollIndicator:NO];
+        [_scrollView addGestureRecognizer:tap];
+        
     }
+    
     return _scrollView;
 }
 
-- (UIImageView *)leftImageView
-{
+- (UIImageView *)leftImageView{
+    
     if (!_leftImageView) {
         _leftImageView = [[UIImageView alloc]initWithFrame:self.bounds];
+        _leftImageView.contentMode = UIViewContentModeScaleToFill;
         [_leftImageView setBackgroundColor:[UIColor redColor]];
     }
+    
     return _leftImageView;
 }
 
-- (UIImageView *)rightImageView
-{
+- (UIImageView *)rightImageView{
+    
     if (!_rightImageView) {
         _rightImageView = [[UIImageView alloc]initWithFrame:self.bounds];
+        _rightImageView.contentMode = UIViewContentModeScaleToFill;
         [_rightImageView setBackgroundColor:[UIColor blueColor]];
     }
     return _rightImageView;
@@ -158,6 +207,7 @@
 {
     if (!_centerImageView) {
         _centerImageView = [[UIImageView alloc]initWithFrame:self.bounds];
+        _centerImageView.contentMode = UIViewContentModeScaleToFill;
         [_centerImageView setBackgroundColor:[UIColor yellowColor]];
     }
     return _centerImageView;
@@ -167,8 +217,73 @@
 {
     if (!_pageControl) {
         _pageControl = [[UIPageControl alloc]init];
+        
+        //todo 添加pageControl点击事件
     }
     return _pageControl;
+}
+
+#pragma mark action
+
+- (void)clickImageWithIndex:(NSInteger)index
+{
+    if ([_delegate respondsToSelector:@selector(clickImageWithIndex:)]) {
+        [_delegate clickImageWithIndex:_currentIndex];
+    }
+}
+
+#pragma mark KVO
+
+-(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
+{
+    if ([keyPath isEqualToString:AUTOMATIC_SROLL_CHANGEKEY]) {
+     
+        BOOL isAutoScroll = [change objectForKey:@"new"];
+        if (isAutoScroll) {
+            if (!_timer) {
+                WS(wself)
+                _timer = [NSTimer timerWithTimeInterval:3.0f target:wself selector:@selector(timerAction) userInfo:nil repeats:YES];
+                [[NSRunLoop currentRunLoop] addTimer:_timer forMode:NSRunLoopCommonModes];
+            }
+        }
+        else{
+            if (_timer)
+                [_timer invalidate];
+            _timer = nil;
+        }
+    }
+}
+
+- (void)timerAction
+{
+    NSLog(@"自动翻页");
+    dispatch_async(dispatch_get_main_queue(), ^{
+        //翻页动画可以自定义
+        [UIView animateWithDuration:0.5f animations:^{
+            [_scrollView setContentOffset:CGPointMake(_scrollView.width*2, 0)];
+        } completion:^(BOOL finished) {
+            _currentIndex = (_currentIndex +1)%self.images.count;
+            [self setImageWithIndex:_currentIndex animated:YES];
+        }];
+    });
+}
+
+-(void)dealloc
+{
+    [self removeObserver:self forKeyPath:AUTOMATIC_SROLL_CHANGEKEY];
+    
+    [_timer invalidate];
+    _timer = nil;
+}
+
+- (void)removeFromSuperview
+{
+    //销毁Timer防止循环引用
+    
+    [super removeFromSuperview];
+
+    [_timer invalidate];
+    _timer = nil;
 }
 
 @end

@@ -9,10 +9,17 @@
 #import <UIKit/UIKit.h>
 #import "UIView+Frame.h"
 #import "UIImageView+loadUrlImage.h"
+#import "KMCycleBannerDelegate.h"
 
 @interface KMCycleBanner : UIView
 
+//DataSource
 @property (nonatomic ,strong) NSArray * images;
+//delegate
+@property (nonatomic ,weak) id  delegate;
+//是否自动滚动
+@property (nonatomic ,assign) BOOL enabledAutoScroll;
+
 
 - (instancetype)initWithFrame:(CGRect)frame
                        images:(NSArray *)images;
