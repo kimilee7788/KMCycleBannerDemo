@@ -8,7 +8,7 @@
 
 #import "KMCycleBanner.h"
 #define WS(weakSelf)  __weak __typeof(&*self)weakSelf = self;
-
+#define DEFAULT_DURATION 3.0f
 
 @interface KMCycleBanner()<UIScrollViewDelegate,KMCycleBannerDelegate>
 
@@ -43,56 +43,46 @@
     if (self) {
         
         [self setupView];
+        //监听是否自动滚动
         [self addObserver:self forKeyPath:AUTOMATIC_SROLL_CHANGEKEY options:NSKeyValueObservingOptionNew context:nil];
+        //设置默认滚动间隔
+        _timerDuration = DEFAULT_DURATION;
+        
     }
     
     return self;
 }
 
 - (void)setImages:(NSArray *)images{
-    
     _images = [[NSArray alloc]initWithArray:images];
-    
     [self loadData];
 }
 
 - (void)loadData{
-    
     [_scrollView setContentSize:CGSizeMake(self.width*self.images.count, 0)];
     [_pageControl setNumberOfPages:self.images.count];
-    
     [self setImageWithIndex:_currentIndex animated:NO];
 }
 
 //设置移动到中间
 - (void)moveScrollViewToCenter{
-    
     [_scrollView setContentOffset:CGPointMake(self.width, 0) animated:NO];
-    
-    NSLog(@"跳转到中间后:%f",_scrollView.contentOffset.x);
-
 }
 
 - (void)setImageWithIndex:(NSInteger)index animated:(BOOL)animated{
-    
     if (index>self.images.count||self.images.count==0) {
         return;
     }
-    
+    //设置前后数据索引
     NSInteger leftIndex = (unsigned long)((index - 1 + self.images.count) % self.images.count);
     NSInteger rightIndex = (unsigned long)((index + 1) % self.images.count);
     
-//    [_centerImageView setImage:[UIImage imageNamed:self.images[index]]];
-//    [_leftImageView setImage:[UIImage imageNamed:self.images[leftIndex]]];
-//    [_rightImageView setImage:[UIImage imageNamed:self.images[rightIndex]]];
-    
+    //重新加载图片
     [_centerImageView loadImageWithUrl:[NSURL URLWithString:self.images[index]]];
     [_leftImageView loadImageWithUrl:[NSURL URLWithString:self.images[leftIndex]]];
     [_rightImageView loadImageWithUrl:[NSURL URLWithString:self.images[rightIndex]]];
 
     [_pageControl setCurrentPage:index];
-    
-
     [self moveScrollViewToCenter];
 }
 
@@ -100,33 +90,20 @@
 
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
     
-    if (scrollView.contentOffset.x >= scrollView.width*2)
-    {
+    //往右边滑动
+    if (scrollView.contentOffset.x >= scrollView.width*2){
         _currentIndex = (_currentIndex +1)%self.images.count;
         [self setImageWithIndex:_currentIndex animated:NO];
     }
-    else if (scrollView.contentOffset.x == 0)
-    {
+    
+    //往左滑动
+    else if (scrollView.contentOffset.x == 0){
         _currentIndex = (_currentIndex -1 + self.images.count)%self.images.count;
         [self setImageWithIndex:_currentIndex animated:NO];
     }
 }
 
 #pragma mark UI
-
-//- (void)layoutIfNeeded
-//{
-//    //设置轮播视图布局
-//    _scrollView.frame = self.bounds;
-//    _leftImageView.frame = _centerImageView.frame = _rightImageView.frame = _scrollView.bounds;
-//    _leftImageView.right = _centerImageView.left;
-//    _rightImageView.left = _centerImageView.right;
-//
-//    //设置pageControl布局
-//    _pageControl.width = self.width/2;
-//    _pageControl.centerX = self.centerX;
-//    _pageControl.bottom = self.height -20;
-//}
 
 - (void)layoutSubviews
 {
@@ -151,18 +128,7 @@
     [self addSubview:self.scrollView];
     [self addSubview:self.pageControl];
     
-//    [self subImageLayout];
 }
-
-//- (void)subImageLayout{
-//
-//    _centerImageView.left = _leftImageView.right;
-//    _rightImageView.left = _centerImageView.right;
-//
-//    _pageControl.width = self.width/2;
-//    _pageControl.centerX = self.centerX;
-//    _pageControl.bottom = self.height -20;
-//}
 
 - (UIScrollView *)scrollView{
     
@@ -225,6 +191,7 @@
 
 #pragma mark action
 
+//设置图片点击事件
 - (void)clickImageWithIndex:(NSInteger)index
 {
     if ([_delegate respondsToSelector:@selector(clickImageWithIndex:)]) {
@@ -242,7 +209,7 @@
         if (isAutoScroll) {
             if (!_timer) {
                 WS(wself)
-                _timer = [NSTimer timerWithTimeInterval:3.0f target:wself selector:@selector(timerAction) userInfo:nil repeats:YES];
+                _timer = [NSTimer timerWithTimeInterval:_timerDuration target:wself selector:@selector(timerAction) userInfo:nil repeats:YES];
                 [[NSRunLoop currentRunLoop] addTimer:_timer forMode:NSRunLoopCommonModes];
             }
         }

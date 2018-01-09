@@ -19,7 +19,8 @@
 @property (nonatomic ,weak) id  delegate;
 //是否自动滚动
 @property (nonatomic ,assign) BOOL enabledAutoScroll;
-
+//自动滚动图片间隔
+@property (nonatomic ,assign) NSTimeInterval timerDuration;
 
 - (instancetype)initWithFrame:(CGRect)frame
                        images:(NSArray *)images;
